@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Reklam ağları (LevelPlay): Android 9+ düz HTTP'yi engeller; bazı reklam ağı/kreatifleri
+     HTTP kullandığı için reklam gelmeyebilir. (Worlds Merge ile aynı ayar.) -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
