@@ -1,4 +1,4 @@
-name: Build Debug APK
+name: Build (debug APK + imzasız AAB)
 
 on:
   push:
@@ -25,10 +25,76 @@ jobs:
         run: flutter pub get
 
       - name: APK (debug)
-        run: flutter build apk --debug
+        # ADS=mock: üstte 320x50 sahte banner şeridi çıkar (yerleşimi görmek için). Gerçek reklam (LevelPlay):
+        # --dart-define=LEVELPLAY_APP_KEY=... LEVELPLAY_BANNER_ID=... LEVELPLAY_REWARDED_ID=... (secrets'tan; boşken sahte kalır)
+        run: flutter build apk --debug --dart-define=ADS=mock
 
       - name: APK yükle
         uses: actions/upload-artifact@v4
         with:
           name: okey101-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
+
+  # ---------------------------------------------------------------------------------------------
+  # İMZASIZ AAB (Play Store için). Yalnız elle çalışır: GitHub > Actions > Run workflow.
+  # Çıkan dosyayı indirip İMZAYI BİLGİSAYARDAN jarsigner ile atarsın (aşağıdaki komut). Anahtar GitHub'a konmaz.
+  # Secret'lar (düz metin, base64 DEĞİL): SUPABASE_URL, SUPABASE_ANON_KEY, WS_URL. BOŞ OLABİLİR: derleme durmaz, sahte servisle açılır.
+  # İsteğe bağlı (gerçek reklam için): LEVELPLAY_APP_KEY, LEVELPLAY_BANNER_ID, LEVELPLAY_REWARDED_ID. Boşsa sahte banner (ADS=mock).
+  # ---------------------------------------------------------------------------------------------
+  aab:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      UNSIGNED_AAB: 'true'   # android/app/build.gradle: release'te debug imzasını KAPATIR
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://kmgyfebytujexbxzqdmv.supabase.co' }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'sb_publishable_788hs4eOGkTJ2mNT3lsOwA_rBQKTuYE' }}
+      WS_URL: ${{ secrets.WS_URL || 'wss://okey101-server.610gastille.workers.dev/ws' }}
+      LEVELPLAY_APP_KEY: ${{ secrets.LEVELPLAY_APP_KEY || '2734447fd' }}
+      LEVELPLAY_BANNER_ID: ${{ secrets.LEVELPLAY_BANNER_ID || '49c6c5wjz2gagjlb' }}
+      LEVELPLAY_REWARDED_ID: ${{ secrets.LEVELPLAY_REWARDED_ID || '2eiwf0yysehblsw1' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Paketleri indir
+        run: flutter pub get
+
+      - name: Sunucu adresleri dolu mu? (yalnız uyarı, derleme DURMAZ)
+        # Boşsa uygulama SAHTE servisle (MockGameService) açılır: arayüzü test etmek için yeterli.
+        # Sunucuyu kurunca secret'ları ekle; ekleyene kadar bu AAB'yi canlıya (Üretim) YÜKLEME.
+        run: |
+          for v in SUPABASE_URL SUPABASE_ANON_KEY WS_URL; do
+            if [ -z "${!v}" ]; then
+              echo "::warning::$v secret'ı boş: bu AAB sahte servisle çalışır (sadece arayüz testi için)."
+            fi
+          done
+
+      - name: AAB (release, imzasız)
+        # LEVELPLAY_APP_KEY boşsa ADS=mock verilir: üstte sahte banner (REKLAM) görünür, arayüzü test edebilirsin.
+        # Doluysa gerçek LevelPlay reklamı kullanılır.
+        run: |
+          ADS_ARG=""
+          if [ -z "$LEVELPLAY_APP_KEY" ]; then ADS_ARG="--dart-define=ADS=mock"; fi
+          flutter build appbundle --release \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
+            --dart-define=WS_URL="$WS_URL" \
+            --dart-define=LEVELPLAY_APP_KEY="$LEVELPLAY_APP_KEY" \
+            --dart-define=LEVELPLAY_BANNER_ID="$LEVELPLAY_BANNER_ID" \
+            --dart-define=LEVELPLAY_REWARDED_ID="$LEVELPLAY_REWARDED_ID" \
+            $ADS_ARG
+
+      - name: AAB yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: okey101-unsigned-aab
+          path: build/app/outputs/bundle/release/app-release.aab
