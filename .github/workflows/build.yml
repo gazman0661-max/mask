@@ -25,9 +25,23 @@ jobs:
         run: flutter pub get
 
       - name: APK (debug)
-        # ADS=mock: üstte 320x50 sahte banner şeridi çıkar (yerleşimi görmek için). Gerçek reklam (LevelPlay):
-        # --dart-define=LEVELPLAY_APP_KEY=... LEVELPLAY_BANNER_ID=... LEVELPLAY_REWARDED_ID=... (secrets'tan; boşken sahte kalır)
-        run: flutter build apk --debug --dart-define=ADS=mock
+        # GERÇEK reklam (LevelPlay): ADS verilmez; kimlikler lib/config.dart'taki varsayılanlardan gelir (secret varsa onlar ezer).
+        # Sahte banner/ödüllü görmek istersen sonuna: --dart-define=ADS=mock
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://kmgyfebytujexbxzqdmv.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'sb_publishable_788hs4eOGkTJ2mNT3lsOwA_rBQKTuYE' }}
+          WS_URL: ${{ secrets.WS_URL || 'wss://okey101-server.610gastille.workers.dev/ws' }}
+          LEVELPLAY_APP_KEY: ${{ secrets.LEVELPLAY_APP_KEY || '2734447fd' }}
+          LEVELPLAY_BANNER_ID: ${{ secrets.LEVELPLAY_BANNER_ID || '49c6c5wjz2gagjlb' }}
+          LEVELPLAY_REWARDED_ID: ${{ secrets.LEVELPLAY_REWARDED_ID || '2eiwf0yysehblsw1' }}
+        run: |
+          flutter build apk --debug \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
+            --dart-define=WS_URL="$WS_URL" \
+            --dart-define=LEVELPLAY_APP_KEY="$LEVELPLAY_APP_KEY" \
+            --dart-define=LEVELPLAY_BANNER_ID="$LEVELPLAY_BANNER_ID" \
+            --dart-define=LEVELPLAY_REWARDED_ID="$LEVELPLAY_REWARDED_ID"
 
       - name: APK yükle
         uses: actions/upload-artifact@v4
@@ -36,13 +50,12 @@ jobs:
           path: build/app/outputs/flutter-apk/app-debug.apk
 
   # ---------------------------------------------------------------------------------------------
-  # İMZASIZ AAB (Play Store için). Yalnız elle çalışır: GitHub > Actions > Run workflow.
+  # İMZASIZ AAB (Play Store için). Her push'ta APK ile birlikte (paralel) derlenir; elle de çalışır.
   # Çıkan dosyayı indirip İMZAYI BİLGİSAYARDAN jarsigner ile atarsın (aşağıdaki komut). Anahtar GitHub'a konmaz.
   # Secret'lar (düz metin, base64 DEĞİL): SUPABASE_URL, SUPABASE_ANON_KEY, WS_URL. BOŞ OLABİLİR: derleme durmaz, sahte servisle açılır.
   # İsteğe bağlı (gerçek reklam için): LEVELPLAY_APP_KEY, LEVELPLAY_BANNER_ID, LEVELPLAY_REWARDED_ID. Boşsa sahte banner (ADS=mock).
   # ---------------------------------------------------------------------------------------------
   aab:
-    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       UNSIGNED_AAB: 'true'   # android/app/build.gradle: release'te debug imzasını KAPATIR
