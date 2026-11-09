@@ -1,0 +1,34 @@
+name: okey101
+description: 101 Okey - frontend iskeleti
+publish_to: none
+version: 2.5.8+142
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.2
+  web_socket_channel: ^3.0.1
+  shared_preferences: ^2.2.3
+  crypto: ^3.0.3
+  flutter_web_auth_2: ^4.1.0   # Google bağlama/giriş: tarayıcı penceresi + okey101://login-callback dönüşü
+  audioplayers: ^6.1.0   # ses efektleri (assets/sounds)
+  # Unity LevelPlay (ironSource) mediation: banner + ödüllü reklam (geçiş reklamı YOK). Sürüm, Worlds Merge
+  # oyunundakiyle aynı. Kimlikler dart-define ile verilir (config.dart); boşken sahte reklam çalışır.
+  unity_levelplay_mediation: ^9.3.0
+  webview_flutter: ^4.10.0   # Gizlilik Politikası / Hizmet Şartları sayfalarını uygulama içinde açar (lib/screens/legal_screen.dart)
+  in_app_update: ^4.2.3   # Zorunlu güncelleme: Play'de yeni sürüm varsa tam ekran Google penceresi (yalnız Play'den kurulu sürümde)
+  # Firebase Analytics + Crashlytics. google-services.json (android/app) YOKKEN hiçbiri çalışmaz, oyun çökmez
+  # (Telemetry katmanı hatayı yutar, Gradle eklentisi dosya varsa kendiliğinden devreye girer).
+  firebase_core: ^3.6.0
+  firebase_analytics: ^11.3.0
+  firebase_crashlytics: ^4.1.0
+  android_id: ^0.4.0   # misafir hesabı: uygulama verisi silinse de aynı kalan Android cihaz kimliği
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/sounds/
+    - assets/brand/
